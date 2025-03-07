@@ -2,20 +2,15 @@ import express from "express";
 import { 
     
     createSubAccount, 
-    getMainAccountBalance,
-    getAccountBalanceWithWalletAddress,
-    getAccountDetails,
-    getHealthAndStatus
+    getHealthAndStatus,
+    getSubAccounts
 
 } from "../controllers/accountController.js";
 
 const router = express.Router();
 
 router.get('/health', getHealthAndStatus);
-router.post('/sub-account', createSubAccount);
-router.get('/main-balance', getMainAccountBalance);
-router.get('/get-details', getAccountDetails);
-router.post('/wallet-balance', getAccountBalanceWithWalletAddress);
-
+router.post('/create-sub', createSubAccount);
+router.get('/get-sub', getSubAccounts);
 
 export default router;

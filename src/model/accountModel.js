@@ -23,9 +23,8 @@ const SubAccountSchema = new mongoose.Schema(
       type: String,
       default: 0,
     },
-    U_ID: {
-    type: Number,
-      default: 0,
+    UID: {
+      type: Number,
     },
   },
   { timestamps: true }

@@ -1,13 +1,13 @@
 import { tronWebConfigMain} from "../config/tronConfig.js";
 import subaccountModel from "../model/accountModel.js"
-import { MAIN_ACCOUNT_WALLET_ADDRESS, fetchBalance } from "../config/constants.js";
+import { MAIN_ACCOUNT_WALLET_ADDRESS, getBalance } from "../config/constants.js";
 import { responseHandler, HTTP_STATUS_CODES as STATUS, HTTP_STATUS_MESSAGES as MESSAGES } from "../helpers/responseHandler.js";
 import mongoose from "mongoose";
 
 /**
  * 
- * @description Get TRX balance  
- * @route api/tron/balance
+ * @description Get The health and status of the server
+ * @route api/tron/health
  */
 
 export const getHealthAndStatus = async(req, res) => {
@@ -41,7 +41,86 @@ export const getHealthAndStatus = async(req, res) => {
     }
 }
 
-export const getMainAccountBalance = async (req, res) => {
+/**
+ * @description Sub account wallet
+ * @route /api/tron/create-sub
+ */
+
+export const createSubAccount = async (req, res) => {
+  try {
+
+    const {UID, userName} = req.body;
+
+    //since we just need to create a sub account we dont need to use the tronConfig with private key in it
+    const subAccount = await tronWebConfigMain.createAccount();
+    
+    /**
+     * @description we get this three values from the newSubaccount
+     *              which we can use to store in the database
+     *  |-address base58, hex
+     *  |-privateKey
+     *  |-publicKey
+    */
+   
+   const subAccountWalletAddress = subAccount.address.base58;
+   const subAccountPrivateKey = subAccount.privateKey;
+
+    const newSubaccount = new subaccountModel({
+      UID,
+      userName,
+      address: subAccountWalletAddress,
+      privateKey: subAccountPrivateKey,
+      mainAccountWalletAddress: MAIN_ACCOUNT_WALLET_ADDRESS,
+    })
+
+    await newSubaccount.save();
+    
+    return responseHandler(res, STATUS.CREATED, MESSAGES.CREATED, {"Sub Account ": newSubaccount});
+
+  } catch (error) {
+    console.error(`Error creating sub account : ${error}`);
+    return res.status(500).json({ 
+      success: false,
+      message: "Failed to create sub account",
+    });
+  }
+};
+
+/**
+ * @description get all sub accounts
+ * @route /api/tron/get-sub
+ */
+
+export const getSubAccounts = async (req, res) => {
+  
+
+  const mainAccountWalletAddress = MAIN_ACCOUNT_WALLET_ADDRESS;
+
+  const subAccountDetails = await subaccountModel.find({mainAccountWalletAddress});
+
+  const mainAccountBalance = await fetchBalance(mainAccountWalletAddress);
+
+  if(subAccountDetails.length == 0){
+
+    return res.json({
+      success: false,
+      data: "No sub accounts found you might want to create one ",
+      accountBalance: mainAccountBalance
+
+    })
+  }
+    return res.json({
+      success: true,
+      data: {subAccountDetails , 
+        accountBalance: mainAccountBalance
+      }
+    })
+  }
+
+/**
+ OMIT
+ 
+export const getAccountBalance = async (req, res) => {
   try{
 
     console.log(" Main Account Wallet Address", MAIN_ACCOUNT_WALLET_ADDRESS);
@@ -85,86 +164,8 @@ export const getAccountBalanceWithWalletAddress = async (req, res) => {
   }
 };
 
+*/
 
-/**
- * @description Sub account wallet
- * @route /api/tron/create
- */
-
-export const createSubAccount = async (req, res) => {
-  try {
-
-    const {U_ID, userName} = req.body;
-
-    //until unless hume jaroorat hai account se transaction karne ki 
-    // we dont need to use the config with the private key 
-    const subAccount = await tronWebConfigMain.createAccount();
-    
-    /**
-     * @description we get this three values from the newSubaccount
-     *              which we can use to store in the database
-     *  |-address
-     *  |-privateKey
-     *  |-publicKey
-    */
-   
-   const subAccountwalletAddress = subAccount.address.base58;
-   const subAccountprivateKey = subAccount.privateKey;
-   
-   //by default the wallet balance is will be zero as it just got created
-   const balance = await fetchBalance(subAccountwalletAddress);
-
-    const newSubaccount = new subaccountModel({
-      address: subAccountwalletAddress,
-      privateKey: subAccountprivateKey,
-      mainAccountWalletAddress: MAIN_ACCOUNT_WALLET_ADDRESS,
-      balance: balance,
-      userName,
-      U_ID
-    })
-
-    await newSubaccount.save();
-    
-    return res.status(200).json({
-      success: true,
-      message: "Sub-Account created successfully",
-      data: newSubaccount,
-    
-    });
-
-  } catch (error) {
-    console.error(`Error creating sub account : ${error}`);
-    return res.status(500).json({ 
-      success: false,
-      message: "Failed to create sub account",
-    });
-  }
-};
-
-export const getAccountDetails = async (req, res) => {
-
-  const mainAccountWalletAddress = "TBRo4SycPuurP872iV6rdttuYeFa2DUNyz";
-
-  const subAccountDetails = await subaccountModel.find({mainAccountWalletAddress});
-
-  const mainAccountBalance = await fetchBalance(mainAccountWalletAddress);
-
-  if(subAccountDetails.length == 0){
-
-    return res.json({
-      success: false,
-      data: "No sub accounts found you might want to create one ",
-      accountBalance: mainAccountBalance
-
-    })
-  }
-    return res.json({
-      success: true,
-      data: {subAccountDetails , 
-        accountBalance: mainAccountBalance
-      }
-    })
-  }
 
 
 

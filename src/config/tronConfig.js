@@ -22,7 +22,7 @@ const TRON_GRID_API = "https://nile.trongrid.io";
  */
 export const tronWebConfigMain = new TronWeb({
     fullHost: TRON_GRID_API,
-    privateKey: process.env.MAIN_ACCOUNT_PRIVATE_KEY // 🔐 Required for signing transactions
+    privateKey:  "1836c81fdf5265ddc89d99830c14f170cb1eb9f47be956a70005d548da3d92cd"// 🔐 Required for signing transactions
 });
 
 /**
