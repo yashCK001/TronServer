@@ -105,7 +105,7 @@ export const getSubAccounts = async (req, res) => {
       data: "No sub accounts found you might want to create one "
     })
   }
-    return responseHandler(res, STATUS.CREATED, MESSAGES.CREATED, {"Sub accounts" : subAccountDetails})
+    return responseHandler(res, STATUS.CREATED, MESSAGES.CREATED, {SubAccounts : subAccountDetails})
   }
 
 /**
