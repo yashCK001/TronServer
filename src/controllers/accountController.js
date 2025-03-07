@@ -102,9 +102,7 @@ export const getSubAccounts = async (req, res) => {
 
     return res.json({
       success: false,
-      data: "No sub accounts found you might want to create one ",
-      accountBalance: mainAccountBalance
-
+      data: "No sub accounts found you might want to create one "
     })
   }
     return responseHandler(res, STATUS.CREATED, MESSAGES.CREATED, {"Sub accounts" : subAccountDetails})
