@@ -2,6 +2,7 @@ import express from "express";
 import { config } from "dotenv";
 import accountRouter from "./routes/accountRoutes.js";
 import { mongoDbConnection } from "./config/mongoConnection.js";
+import cors from "cors"
 
 config();
 
@@ -10,6 +11,7 @@ console.log("PORT", PORT);
 
 const app = express();
 app.use(express.json());
+app.use(cors())
 
 app.use("/api/tron", accountRouter);
 
