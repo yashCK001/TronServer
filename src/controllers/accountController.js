@@ -93,8 +93,7 @@ export const createSubAccount = async (req, res) => {
 
 export const getSubAccounts = async (req, res) => {
   
-
-  const mainAccountWalletAddress = MAIN_ACCOUNT_WALLET_ADDRESS;
+  const mainAccountWalletAddress = req.query.address;
 
   const subAccountDetails = await subaccountModel.find({mainAccountWalletAddress});
   
