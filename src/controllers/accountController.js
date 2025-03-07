@@ -107,12 +107,7 @@ export const getSubAccounts = async (req, res) => {
 
     })
   }
-    return res.json({
-      success: true,
-      data: {subAccountDetails , 
-        accountBalance: mainAccountBalance
-      }
-    })
+    return responseHandler(res, STATUS.CREATED, MESSAGES.CREATED, {"Sub accounts" : subAccountDetails})
   }
 
 /**
