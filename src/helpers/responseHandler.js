@@ -6,6 +6,7 @@ export const HTTP_STATUS_CODES = {
   FORBIDDEN: 403,
   NOT_FOUND: 404,
   SERVER_ERROR: 500,
+  ALREADY_EXISTS: 403
 };
 
 export const HTTP_STATUS_MESSAGES = {
@@ -16,6 +17,7 @@ export const HTTP_STATUS_MESSAGES = {
   FORBIDDEN: "Access forbidden",
   NOT_FOUND: "Resource not found",
   SERVER_ERROR: "Internal server error",
+  ALREADY_EXISTS: "Resource Already exists"
 };
 
 

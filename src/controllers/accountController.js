@@ -1,6 +1,6 @@
 import { tronWebConfigMain} from "../config/tronConfig.js";
 import subaccountModel from "../model/accountModel.js";
-import { MAIN_ACCOUNT_WALLET_ADDRESS, getBalance } from "../config/constants.js";
+import { MAIN_ACCOUNT_WALLET_ADDRESS} from "../config/constants.js";
 import { responseHandler, HTTP_STATUS_CODES as STATUS, HTTP_STATUS_MESSAGES as MESSAGES } from "../helpers/responseHandler.js";
 import mongoose from "mongoose";
 
@@ -54,7 +54,7 @@ export const createSubAccount = async (req, res) => {
     //check for existing
     let existingSubAccount = await subaccountModel.findOne({UID});
     if(existingSubAccount){
-      return responseHandler(res, STATUS.OK, "Sub Accoount already exists", {"Sub account" : existingSubAccount})
+      return responseHandler(res, STATUS.ALREADY_EXISTS, "Sub Accoount already exists", {"Sub account" : existingSubAccount})
     }
     
     //since we just need to create a sub account we dont need to use the tronConfig with private key in it
