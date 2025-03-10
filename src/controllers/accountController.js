@@ -54,7 +54,7 @@ export const createSubAccount = async (req, res) => {
     //check for existing
     let existingSubAccount = await subaccountModel.findOne({UID});
     if(existingSubAccount){
-      return responseHandler(res, STATUS.ALREADY_EXISTS, "Sub Accoount already exists", {"Sub account" : existingSubAccount})
+      return responseHandler(res, STATUS.ALREADY_EXISTS, "Sub Accoount already exists", {"subAccount" : existingSubAccount})
     }
     
     //since we just need to create a sub account we dont need to use the tronConfig with private key in it
@@ -81,7 +81,7 @@ export const createSubAccount = async (req, res) => {
 
     await newSubaccount.save();
     
-    return responseHandler(res, STATUS.CREATED, MESSAGES.CREATED, {"Sub Account ": newSubaccount});
+    return responseHandler(res, STATUS.CREATED, MESSAGES.CREATED, {"subAccount ": newSubaccount});
 
   } catch (error) {
     console.error(`Error creating sub account : ${error}`);
