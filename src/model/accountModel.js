@@ -21,7 +21,7 @@ const SubAccountSchema = new mongoose.Schema(
     },
     userName: {
       type: String,
-      default: 0,
+      default: "Sub Account",
     },
     UID: {
       type: Number,
