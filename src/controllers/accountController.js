@@ -104,7 +104,6 @@ export const getAllSubAccounts = async (req, res) => {
   
   const balance = await getBalance(AllSubAccounts[0].address);
   
-
   if(AllSubAccounts.length == 0){
     return res.json({
       success: false,
@@ -130,8 +129,14 @@ export const getSubAccountByAddress = async (req, res) => {
   
   const mainAccountWalletAddress = req.query.address;
 
-  const subAccountDetails = await subaccountModel.find({mainAccountWalletAddress});
+  let subAccountDetails = await subaccountModel.find({mainAccountWalletAddress});
+  const balance = await getBalance(subAccountDetails[0].address)
   
+  subAccountDetails = subAccountDetails.map(account => ({
+    ...account.toObject(),
+    balance: balance
+  })) 
+
   if(subAccountDetails.length == 0){
 
     return res.json({
