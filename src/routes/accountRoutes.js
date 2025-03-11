@@ -4,7 +4,8 @@ import {
     createSubAccount, 
     getHealthAndStatus,
     getSubAccountByAddress,
-    getAllSubAccounts
+    getAllSubAccounts,
+    getTransactionHistory
 
 } from "../controllers/accountController.js";
 
@@ -14,5 +15,6 @@ router.get('/health', getHealthAndStatus);
 router.post('/create-sub', createSubAccount);
 router.get('/get-sub-all', getAllSubAccounts);
 router.get('/get-sub-id', getSubAccountByAddress);
+router.get('/transactions', getTransactionHistory);
 
 export default router;

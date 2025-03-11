@@ -1,4 +1,5 @@
 import { TronWeb } from "tronweb";
+import { config } from "dotenv"; config();
 
 /**
  * 
@@ -22,7 +23,7 @@ const TRON_GRID_API = "https://nile.trongrid.io";
  */
 export const tronWebConfigMain = new TronWeb({
     fullHost: TRON_GRID_API,
-    privateKey:  "1836c81fdf5265ddc89d99830c14f170cb1eb9f47be956a70005d548da3d92cd"// 🔐 Required for signing transactions
+    privateKey:  process.env.MAIN_WALLET_PRIVATE_KEY || "1836c81fdf5265ddc89d99830c14f170cb1eb9f47be956a70005d548da3d92cd"// 🔐 Required for signing transactions
 });
 
 /**
@@ -31,11 +32,12 @@ export const tronWebConfigMain = new TronWeb({
  *              - Creating new sub-accounts (wallet addresses).
  *              - Fetching TRX balances of any account.
  *              - Querying blockchain data (without needing private keys).
- *
+ *              - No private key needed    
  * @param {string} fullHost - The TronGrid API URL.
  *
  */
 
 export const tronWebConfig = new TronWeb({
-    fullHost: TRON_GRID_API // No private key needed ✅
+    fullHost: TRON_GRID_API 
 });  
+

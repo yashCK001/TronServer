@@ -1,6 +1,6 @@
 import { tronWebConfigMain} from "../config/tronConfig.js";
 import subaccountModel from "../model/accountModel.js";
-import { MAIN_ACCOUNT_WALLET_ADDRESS} from "../config/constants.js";
+import { fetchTransactionHistory, MAIN_ACCOUNT_WALLET_ADDRESS} from "../config/constants.js";
 import { responseHandler, HTTP_STATUS_CODES as STATUS, HTTP_STATUS_MESSAGES as MESSAGES } from "../helpers/responseHandler.js";
 import mongoose from "mongoose";
 
@@ -35,7 +35,6 @@ export const getHealthAndStatus = async(req, res) => {
       
     }catch(error){
       return responseHandler(res, STATUS.SERVER_ERROR, MESSAGES.SERVER_ERROR, {
-        success: false,
         message: "Bad Health"
       })
     }
@@ -135,54 +134,25 @@ export const getSubAccountByAddress = async (req, res) => {
     return responseHandler(res, STATUS.CREATED, MESSAGES.CREATED, {SubAccounts : subAccountDetails})
   }
 
-/**
- OMIT
- 
-export const getAccountBalance = async (req, res) => {
+
+export const getTransactionHistory = async (req, res) => {
+
   try{
 
-    console.log(" Main Account Wallet Address", MAIN_ACCOUNT_WALLET_ADDRESS);
+    const walletAddress = req.query.address;
 
-    const balanceInDefault = await tronWebConfigMain.trx.getBalance(MAIN_ACCOUNT_WALLET_ADDRESS); // this will be in sun by default
+    const result = await fetchTransactionHistory(walletAddress);
 
-    const balanceInTRX = tronWebConfigMain.fromSun(balanceInDefault);
+    if(!result.success) return responseHandler(res, STATUS.SERVER_ERROR, MESSAGES.SERVER_ERROR, {message: result.message});
 
-    return responseHandler(res, HTTP_STATUS_CODES.OK, HTTP_STATUS_MESSAGES.OK, {
-      "Balance in sun": balanceInDefault,
-      "balance in TRX": balanceInTRX
-    });
+    return responseHandler(res, STATUS.OK, MESSAGES.OK, {message: result});
 
   }catch(error){
-    console.error(`Error ${error.getMessage}`)
-    return res.json({sucess: false, message: "Error fetching balance"});
+    console.error(`Error fetching transactions: ${error}`);
+    return responseHandler(res, STATUS.SERVER_ERROR, MESSAGES.SERVER_ERROR, {data: error})
   }
+
 }
-
-export const getAccountBalanceWithWalletAddress = async (req, res) => {
-  try {
-    const { walletAddress } = req.body;
-
-    // Validate wallet address
-    if (!walletAddress) {
-      return responseHandler(res, HTTP_STATUS_CODES.BAD_REQUEST.code, HTTP_STATUS_MESSAGES.BAD_REQUEST, "Wallet address is required");
-    }
-
-    // Fetch balance in SUN and convert to TRX
-    const balanceInSun = await tronWebConfigMain.trx.getBalance(walletAddress);
-    const balanceInTRX = tronWebConfigMain.fromSun(balanceInSun);
-
-    return responseHandler(res, STATUS.OK.code, MESSAGES.OK, {
-      "Balance in sun": balanceInSun,
-      "Balance in TRX": balanceInTRX
-    });
-
-  } catch (error) {
-    console.error(`Error: ${error.message}`);
-    return res.json({ success: false, message: "Error fetching balance" });
-  }
-};
-
-*/
 
 
 

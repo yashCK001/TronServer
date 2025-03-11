@@ -41,6 +41,28 @@ const sendTron = async (receiver, amount) => {
   }
 };
 
+const fetchTransactionHistory = async (walletAddress) => {
+
+  try{
+
+     if(!walletAddress) throw new Error("Please provide wallet addres");
+
+     const transactionUrl = `${TRON_GRID_API}/v1/accounts/${walletAddress}/transactions?limit=1`;
+     const response = await fetch(transactionUrl);
+  
+     if(!response.ok) throw new Error(`Failed to fetch transactions ${response.status}`);
+
+     const data = await response.json();
+     
+    //  return {success: true, transactions: data}
+     return {success: true, transactions: data.data}
+
+  }catch(error){
+      console.error(`Error fetching transaction ${error.message}`)
+      return {success: false, message: error.message}
+  }
+
+}
 
 export {
   TRON_GRID_API,
@@ -48,5 +70,6 @@ export {
   MAIN_ACCOUNT_WALLET_ADDRESS,
   MAIN_WALLET_PRIVATE_KEY,
   getBalance,
-  sendTron
+  sendTron,
+  fetchTransactionHistory
 };
