@@ -11,7 +11,7 @@ const MAIN_ACCOUNT_WALLET_ADDRESS = process.env.MAIN_ACCOUNT_WALLET_ADDRESS;
 const getBalance = async (walletAddress) => {
       const balanceInSun = await tronWebConfigMain.trx.getBalance(walletAddress);
       const balanceInTRX = tronWebConfigMain.fromSun(balanceInSun);
-      return balanceInTRX
+      return balanceInTRX;
 }
 
 const sendTron = async (receiver, amount) => {

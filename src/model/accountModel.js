@@ -15,6 +15,10 @@ const SubAccountSchema = new mongoose.Schema(
       type: String,
       required: [true, "private is key is required"],
     },
+    balance: {
+      type: Number,
+      default: 0,
+    },
     userName: {
       type: String,
       default: "Sub Account",

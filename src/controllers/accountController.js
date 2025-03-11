@@ -1,6 +1,6 @@
 import { tronWebConfigMain} from "../config/tronConfig.js";
 import subaccountModel from "../model/accountModel.js";
-import { fetchTransactionHistory, MAIN_ACCOUNT_WALLET_ADDRESS} from "../config/constants.js";
+import { fetchTransactionHistory, getBalance, MAIN_ACCOUNT_WALLET_ADDRESS} from "../config/constants.js";
 import { responseHandler, HTTP_STATUS_CODES as STATUS, HTTP_STATUS_MESSAGES as MESSAGES } from "../helpers/responseHandler.js";
 import mongoose from "mongoose";
 
@@ -100,15 +100,23 @@ export const createSubAccount = async (req, res) => {
 
 export const getAllSubAccounts = async (req, res) => {
   
-  const AllSubAccounts = await subaccountModel.find();
+  let AllSubAccounts = await subaccountModel.find();
   
-  if(AllSubAccounts.length == 0){
+  const balance = await getBalance(AllSubAccounts[0].address);
+  
 
+  if(AllSubAccounts.length == 0){
     return res.json({
       success: false,
       data: "No sub accounts found you might want to create one "
     })
   }
+
+  AllSubAccounts = AllSubAccounts.map(account => ({
+    ...account.toObject(),
+    balance: balance
+  }))
+
     return responseHandler(res, STATUS.CREATED, MESSAGES.CREATED, {SubAccounts : AllSubAccounts})
   }
 
