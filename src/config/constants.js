@@ -47,7 +47,7 @@ const fetchTransactionHistory = async (walletAddress) => {
 
      if(!walletAddress) throw new Error("Please provide wallet addres");
 
-     const transactionUrl = `${TRON_GRID_API}/v1/accounts/${walletAddress}/transactions?limit=1`;
+     const transactionUrl = `${TRON_GRID_API}/v1/accounts/${walletAddress}/transactions`;
      const response = await fetch(transactionUrl);
   
      if(!response.ok) throw new Error(`Failed to fetch transactions ${response.status}`);
