@@ -27,7 +27,7 @@ const sendTron = async (receiver, amount) => {
     const amountInSun = tronWebConfigMain.toSun(amount);
 
     if (senderBalance < amountInSun) {  
-      throw new Error("Insufficient balance to complete transaction");
+      throw new Error("Insufficient balance to complete transaction"); 
     }
 
     const transaction = await tronWebConfigMain.trx.sendTransaction(receiver, amountInSun);

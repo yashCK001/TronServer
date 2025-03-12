@@ -1,16 +1,10 @@
 import { tronWebConfigMain } from "../config/tronConfig.js";
 import subaccountModel from "../model/accountModel.js";
-import {
-  fetchTransactionHistory,
-  getBalance,
-  MAIN_ACCOUNT_WALLET_ADDRESS,
-} from "../config/constants.js";
-import {
-  responseHandler,
-  HTTP_STATUS_CODES as STATUS,
-  HTTP_STATUS_MESSAGES as MESSAGES,
-} from "../helpers/responseHandler.js";
+import {fetchTransactionHistory, getBalance,MAIN_ACCOUNT_WALLET_ADDRESS} from "../config/constants.js";
+import {  responseHandler,HTTP_STATUS_CODES as STATUS,  HTTP_STATUS_MESSAGES as MESSAGES} from "../helpers/responseHandler.js";
 import mongoose from "mongoose";
+import { TronWeb } from "tronweb";
+
 
 /**
  *
@@ -185,14 +179,40 @@ export const getSubAccountByAddress = async (req, res) => {
 
 export const getTransactionHistory = async (req, res) => {
   try {
+    const tronWeb = new TronWeb({
+      fullHost: "https://nile.trongrid.io"
+    });
+
     const walletAddress = req.query.address;
 
-    const result = await fetchTransactionHistory(walletAddress);
+    let result = await fetchTransactionHistory(walletAddress);
+
+    console.log(`Result => ${result} \n Typeof Result => ${typeof result}`);    
 
     if (!result.success)
       return responseHandler(res, STATUS.SERVER_ERROR, MESSAGES.SERVER_ERROR, {
         message: result.message,
       });
+      
+      const transactionDetails = result.transactions.map((tx) => {
+        const ownerHex = tx.raw_data.contract[0]?.parameter?.value?.owner_address;
+        const toHex = tx.raw_data.contract[0]?.parameter?.value?.to_address;
+      
+        const ownerAddress = tronWeb.address.fromHex(ownerHex);
+        const toAddress = tronWeb.address.fromHex(toHex);
+
+        let TXNtype = "unknown"; 
+      
+        if (ownerAddress === walletAddress) {
+          TXNtype = "sent";
+        } else if (toAddress === walletAddress) {
+          TXNtype = "received";
+        }
+      
+        return { ...tx, TXNtype }; 
+      });
+      
+      result.transactions = transactionDetails;
 
     return responseHandler(res, STATUS.OK, MESSAGES.OK, { message: result });
   } catch (error) {
@@ -202,3 +222,16 @@ export const getTransactionHistory = async (req, res) => {
     });
   }
 };
+
+export const sendTron = async(req, res) => {
+
+  try{
+
+    return responseHandler(res, STATUS.OK, MESSAGES.OK, {data: "Transfer Successfull"})
+
+  }catch(error){
+    console.error(`Error in sending Tron ${error.message}`);
+    return responseHandler(res, STATUS.SERVER_ERROR, MESSAGES.SERVER_ERROR, error);
+  }
+
+}
