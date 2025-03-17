@@ -177,7 +177,7 @@ export const getSubAccountByAddress = async (req, res) => {
 
     subAccountDetails = await Promise.all(
       subAccountDetails.map(async (account) => {
-        const balance = await getTRXBalance(account.address);
+        const balance = await getUSDTBalance(account.address);
         return { ...account, Balance: balance };
       })
     );
