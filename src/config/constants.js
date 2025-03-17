@@ -1,5 +1,6 @@
 import {config} from "dotenv";
 import { tronWebConfigMain } from "./tronConfig.js";
+import { TronWeb } from "tronweb";
 config();
 
 
@@ -10,11 +11,56 @@ const USDT_CONTRACT_ADDRESS = process.env.USDT_CONTRACT_ADDRESS;
 const MAIN_WALLET_PRIVATE_KEY = process.env.MAIN_WALLET_PRIVATE_KEY;
 const MAIN_ACCOUNT_WALLET_ADDRESS = process.env.MAIN_ACCOUNT_WALLET_ADDRESS;
 
-const getBalance = async (walletAddress) => {
+const getTRXBalance = async (walletAddress) => {
       const balanceInSun = await tronWebConfigMain.trx.getBalance(walletAddress);
       const balanceInTRX = tronWebConfigMain.fromSun(balanceInSun);
       return balanceInTRX;
 }
+
+
+// const getUSDTBalance = async (walletAddress) => {
+  
+//   try {
+
+//     const privatKey = "41" + "0".repeat(64);
+
+    // const subAccountTronWebConfig = new TronWeb({
+    //   fullHost: TRON_GRID_API,
+    //   privateKey: MAIN_WALLET_PRIVATE_KEY
+    // })
+
+//     const contract = await subAccountTronWebConfig
+//     .contract()
+//     .at(USDT_CONTRACT_ADDRESS);
+    
+//     const balanceInSun = await contract.methods.balanceOf(walletAddress).call();
+//     const balanceInUSDT = parseInt(balanceInSun) / 1000000;
+    
+//     return balanceInUSDT;
+//   }catch(error){
+//     console.error(error);
+//   }
+// }
+
+
+const subAccountTronWebConfig = new TronWeb({
+  fullHost: TRON_GRID_API,
+  privateKey: MAIN_WALLET_PRIVATE_KEY
+})
+
+ const getUSDTBalance = async (walletAddress) => {
+  try {
+    const contract = await subAccountTronWebConfig.contract().at(USDT_CONTRACT_ADDRESS);
+
+    const walletHex = TronWeb.address.toHex(walletAddress); // Convert to Hex
+    const balanceInSun = await contract.methods.balanceOf(walletHex).call();
+
+    return Number(balanceInSun) / 1_000_000; // Convert from SUN to USDT
+  } catch (error) {
+    console.error("Error fetching USDT balance:", error);
+    return 0;
+  }
+};
 
 const sendTron = async (receiver, amount) => {
   try {
@@ -97,7 +143,8 @@ export {
   MAIN_ACCOUNT_WALLET_ADDRESS,
   MAIN_WALLET_PRIVATE_KEY,
   USDT_CONTRACT_ADDRESS,
-  getBalance,
+  getTRXBalance,
+  getUSDTBalance,
   sendTron,
   fetchTransactionHistory
 };

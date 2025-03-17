@@ -3,10 +3,11 @@ import subaccountModel from "../model/accountModel.js";
 
 import {
   fetchTransactionHistory,
-  getBalance,
   MAIN_ACCOUNT_WALLET_ADDRESS,
   USDT_CONTRACT_ADDRESS,
   TRON_GRID_API,
+  getTRXBalance,
+  getUSDTBalance
 } from "../config/constants.js";
 
 import {
@@ -132,10 +133,14 @@ export const getAllSubAccounts = async (req, res) => {
 
     allSubAccounts = await Promise.all(
       allSubAccounts.map(async (account) => {
-        const balance = await getBalance(account.address);
-        return { ...account, Balance: balance };
+        const usdtBalance = await getUSDTBalance(account.address)
+        return { ...account, USDTBalance: usdtBalance };
+        // return { ...account  };
       })
     );
+    
+    const usdtBalance = await getUSDTBalance("TQjBvZ21pmnKg5UFfpzNuMTuPBy4T7PbJr")
+    console.log(usdtBalance);
 
     return responseHandler(res, STATUS.CREATED, MESSAGES.CREATED, {
       SubAccounts: allSubAccounts,
@@ -172,7 +177,7 @@ export const getSubAccountByAddress = async (req, res) => {
 
     subAccountDetails = await Promise.all(
       subAccountDetails.map(async (account) => {
-        const balance = await getBalance(account.address);
+        const balance = await getTRXBalance(account.address);
         return { ...account, Balance: balance };
       })
     );
