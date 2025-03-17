@@ -2,8 +2,10 @@ import {config} from "dotenv";
 import { tronWebConfigMain } from "./tronConfig.js";
 config();
 
+
 const TRON_GRID_API = "https://nile.trongrid.io";
 const TRON_MAINNET_API = "https://api.trongrid.io";
+const USDT_CONTRACT_ADDRESS = process.env.USDT_CONTRACT_ADDRESS;
 
 const MAIN_WALLET_PRIVATE_KEY = process.env.MAIN_WALLET_PRIVATE_KEY;
 const MAIN_ACCOUNT_WALLET_ADDRESS = process.env.MAIN_ACCOUNT_WALLET_ADDRESS;
@@ -64,11 +66,37 @@ const fetchTransactionHistory = async (walletAddress) => {
 
 }
 
+
+// const transferUSDT = async (receiver, amountUSDT) => {
+
+//   try {
+
+//     //checking if the account where the user is recieving is actaully on tron or not 
+//     // because transfer main account me hoga toh hume sirf address confirm karwana hai -> basically wallet check krwana hai
+//     if(!tronWebConfigMain.isAddress(receiver)){
+//       throw new Error(`Invalid tron address provided : ${receiver}`);
+//     }
+
+//     console.log(`🔹 Transferring ${amount} USDT to ${receiver}...`);
+
+//     //contract address of usdt for interacting with it
+//     const USDT_ContractAdrress = "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf";
+//     const contract  = await tronWebConfigMain.contract().at(USDT_ContractAdrress);
+
+
+
+//   }catch(error){
+//     console.error(`Error while transferring : ${error}`);
+//   }
+
+// }
+
 export {
   TRON_GRID_API,
   TRON_MAINNET_API,
   MAIN_ACCOUNT_WALLET_ADDRESS,
   MAIN_WALLET_PRIVATE_KEY,
+  USDT_CONTRACT_ADDRESS,
   getBalance,
   sendTron,
   fetchTransactionHistory

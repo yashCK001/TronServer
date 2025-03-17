@@ -1,10 +1,24 @@
 import { tronWebConfigMain } from "../config/tronConfig.js";
 import subaccountModel from "../model/accountModel.js";
-import {fetchTransactionHistory, getBalance,MAIN_ACCOUNT_WALLET_ADDRESS} from "../config/constants.js";
-import {  responseHandler,HTTP_STATUS_CODES as STATUS,  HTTP_STATUS_MESSAGES as MESSAGES} from "../helpers/responseHandler.js";
+
+import {
+  fetchTransactionHistory,
+  getBalance,
+  MAIN_ACCOUNT_WALLET_ADDRESS,
+  USDT_CONTRACT_ADDRESS,
+  TRON_GRID_API,
+} from "../config/constants.js";
+
+import {
+  responseHandler,
+  HTTP_STATUS_CODES as STATUS,
+  HTTP_STATUS_MESSAGES as MESSAGES,
+} from "../helpers/responseHandler.js";
+
 import mongoose from "mongoose";
 import { TronWeb } from "tronweb";
-
+import { config } from "dotenv";
+config();
 
 /**
  *
@@ -143,9 +157,11 @@ export const getSubAccountByAddress = async (req, res) => {
   try {
     const mainAccountWalletAddress = req.query.address;
 
-    let subAccountDetails = await subaccountModel.find({
-      mainAccountWalletAddress,
-    }).lean();
+    let subAccountDetails = await subaccountModel
+      .find({
+        mainAccountWalletAddress,
+      })
+      .lean();
 
     if (subAccountDetails.length == 0) {
       return res.json({
@@ -180,39 +196,39 @@ export const getSubAccountByAddress = async (req, res) => {
 export const getTransactionHistory = async (req, res) => {
   try {
     const tronWeb = new TronWeb({
-      fullHost: "https://nile.trongrid.io"
+      fullHost: "https://nile.trongrid.io",
     });
 
     const walletAddress = req.query.address;
 
     let result = await fetchTransactionHistory(walletAddress);
 
-    console.log(`Result => ${result} \n Typeof Result => ${typeof result}`);    
+    console.log(`Result => ${result} \n Typeof Result => ${typeof result}`);
 
     if (!result.success)
       return responseHandler(res, STATUS.SERVER_ERROR, MESSAGES.SERVER_ERROR, {
         message: result.message,
       });
-      
-      const transactionDetails = result.transactions.map((tx) => {
-        const ownerHex = tx.raw_data.contract[0]?.parameter?.value?.owner_address;
-        const toHex = tx.raw_data.contract[0]?.parameter?.value?.to_address;
-      
-        const ownerAddress = tronWeb.address.fromHex(ownerHex);
-        const toAddress = tronWeb.address.fromHex(toHex);
 
-        let TXNtype = "unknown"; 
-      
-        if (ownerAddress === walletAddress) {
-          TXNtype = "sent";
-        } else if (toAddress === walletAddress) {
-          TXNtype = "received";
-        }
-      
-        return { ...tx, TXNtype }; 
-      });
-      
-      result.transactions = transactionDetails;
+    const transactionDetails = result.transactions.map((tx) => {
+      const ownerHex = tx.raw_data.contract[0]?.parameter?.value?.owner_address;
+      const toHex = tx.raw_data.contract[0]?.parameter?.value?.to_address;
+
+      const ownerAddress = tronWeb.address.fromHex(ownerHex);
+      const toAddress = tronWeb.address.fromHex(toHex);
+
+      let TXNtype = "unknown";
+
+      if (ownerAddress === walletAddress) {
+        TXNtype = "sent";
+      } else if (toAddress === walletAddress) {
+        TXNtype = "received";
+      }
+
+      return { ...tx, TXNtype };
+    });
+
+    result.transactions = transactionDetails;
 
     return responseHandler(res, STATUS.OK, MESSAGES.OK, { message: result });
   } catch (error) {
@@ -223,15 +239,60 @@ export const getTransactionHistory = async (req, res) => {
   }
 };
 
-export const sendTron = async(req, res) => {
+// send usdt
 
-  try{
+export const sendUSDTfromSubAccount = async (req, res) => {
 
-    return responseHandler(res, STATUS.OK, MESSAGES.OK, {data: "Transfer Successfull"})
+  const subAccountTronWebConfig = new TronWeb({
+    fullHost: TRON_GRID_API,
+    privateKey: "7BC65D7DBD3CCD473A824D92BCCC121883211846985DCE95FABE2E4D23645DA8",
+  });
 
-  }catch(error){
-    console.error(`Error in sending Tron ${error.message}`);
-    return responseHandler(res, STATUS.SERVER_ERROR, MESSAGES.SERVER_ERROR, error);
+  try {
+    const { amount } = req.body;
+
+    if (!amount || isNaN(amount) || amount <= 0) {
+      return responseHandler(res, STATUS.BAD_REQUEST, MESSAGES.BAD_REQUEST, {
+        data: `${amount} is in wrong format`,
+      });
+    }
+
+    // multplying it to 100000 => 1USDT = 1000000 SUN
+    const amountInSun = amount * 1000000;
+
+    const contract = await subAccountTronWebConfig
+      .contract()
+      .at(USDT_CONTRACT_ADDRESS);
+
+    const balanceInSun = await contract.methods.balanceOf(subAccountTronWebConfig.defaultAddress.base58).call();
+    const balanceInUSDT = parseInt(balanceInSun) / 1000000;
+
+    console.log(`Sub account USDT balance: ${balanceInUSDT} USDT `);
+
+    if (balanceInUSDT < amount) {
+      return responseHandler(res, STATUS.BAD_REQUEST, MESSAGES.BAD_REQUEST, { data: "In sufficient balance",});
+    }
+
+    console.log(
+      `🔹 Sending ${amount} USDT from Sub-Account to ${MAIN_ACCOUNT_WALLET_ADDRESS}...`
+    );
+
+    const transaction = await contract.methods.transfer(MAIN_ACCOUNT_WALLET_ADDRESS, amountInSun).send();
+
+    if (!transaction) throw new Error("Error transferring USDt");
+
+  
+    console.log("✅ USDT Transfer Successful:", transaction);
+    return responseHandler(res, STATUS.OK, MESSAGES.OK, { data: transaction });
+
+  } catch (error) {
+    console.error(`Error in sending USDT : ${error}`);
+    return responseHandler(
+      res,
+      STATUS.SERVER_ERROR,
+      MESSAGES.SERVER_ERROR,
+      error
+    );
   }
+};
 
-}
