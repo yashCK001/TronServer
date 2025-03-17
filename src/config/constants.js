@@ -12,6 +12,7 @@ const MAIN_WALLET_PRIVATE_KEY = process.env.MAIN_WALLET_PRIVATE_KEY;
 const MAIN_ACCOUNT_WALLET_ADDRESS = process.env.MAIN_ACCOUNT_WALLET_ADDRESS;
 
 const getTRXBalance = async (walletAddress) => {
+  
       const balanceInSun = await tronWebConfigMain.trx.getBalance(walletAddress);
       const balanceInTRX = tronWebConfigMain.fromSun(balanceInSun);
       return balanceInTRX;

@@ -6,8 +6,8 @@ import {
   MAIN_ACCOUNT_WALLET_ADDRESS,
   USDT_CONTRACT_ADDRESS,
   TRON_GRID_API,
-  getTRXBalance,
-  getUSDTBalance
+  getUSDTBalance,
+  getTRXBalance
 } from "../config/constants.js";
 
 import {
@@ -81,7 +81,7 @@ export const createSubAccount = async (req, res) => {
 
     //since we just need to create a sub account we dont need to use the tronConfig with private key in it
     const subAccount = await tronWebConfigMain.createAccount();
-
+``
     /**
      * @description we get this three values from the newSubaccount
      *              which we can use to store in the database
@@ -177,8 +177,12 @@ export const getSubAccountByAddress = async (req, res) => {
 
     subAccountDetails = await Promise.all(
       subAccountDetails.map(async (account) => {
-        const balance = await getUSDTBalance(account.address);
-        return { ...account, Balance: balance };
+
+        const USDT = await getUSDTBalance(account.address);
+        const TRX = await getTRXBalance(account.address);
+
+        return { ...account, USDTBalance: TRX};
+
       })
     );
 
@@ -248,13 +252,15 @@ export const getTransactionHistory = async (req, res) => {
 
 export const sendUSDTfromSubAccount = async (req, res) => {
 
-  const subAccountTronWebConfig = new TronWeb({
-    fullHost: TRON_GRID_API,
-    privateKey: "7BC65D7DBD3CCD473A824D92BCCC121883211846985DCE95FABE2E4D23645DA8",
-  });
 
   try {
-    const { amount } = req.body;
+    const { amount, senderPrivateKey } = req.body;
+
+    const subAccountTronWebConfig = new TronWeb({
+      fullHost: TRON_GRID_API,
+      privateKey: senderPrivateKey,
+    });
+  
 
     if (!amount || isNaN(amount) || amount <= 0) {
       return responseHandler(res, STATUS.BAD_REQUEST, MESSAGES.BAD_REQUEST, {
@@ -282,7 +288,7 @@ export const sendUSDTfromSubAccount = async (req, res) => {
       `🔹 Sending ${amount} USDT from Sub-Account to ${MAIN_ACCOUNT_WALLET_ADDRESS}...`
     );
 
-    const transaction = await contract.methods.transfer(MAIN_ACCOUNT_WALLET_ADDRESS, amountInSun).send();
+    const transaction = await contract.methods.transfer(MAIN_ACCOUNT_WALLET_ADDRESS, asmountInSun).send();
 
     if (!transaction) throw new Error("Error transferring USDt");
 
