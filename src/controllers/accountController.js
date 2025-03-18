@@ -181,7 +181,7 @@ export const getSubAccountByAddress = async (req, res) => {
         const USDT = await getUSDTBalance(account.address);
         const TRX = await getTRXBalance(account.address);
 
-        return { ...account, USDTBalance: TRX};
+        return { ...account, USDTBalance: USDT, TRXbalance: TRX};
 
       })
     );
@@ -204,6 +204,7 @@ export const getSubAccountByAddress = async (req, res) => {
 
 export const getTransactionHistory = async (req, res) => {
   try {
+
     const tronWeb = new TronWeb({
       fullHost: "https://nile.trongrid.io",
     });
@@ -252,9 +253,24 @@ export const getTransactionHistory = async (req, res) => {
 
 export const sendUSDTfromSubAccount = async (req, res) => {
 
-
   try {
-    const { amount, senderPrivateKey } = req.body;
+    const { amountInUSDT, address } = req.body;
+
+    /*
+    Search from the mongoDB 
+      - private key
+      - mainWalletAddress associated with the walletAddress
+    */
+
+    const result = await subaccountModel.findOne({address})
+
+    if(!result) {
+      return responseHandler(res, STATUS.NOT_FOUND, MESSAGES.NOT_FOUND, {
+        data: "Sub account not found"
+      })};
+
+    const senderPrivateKey = result.privateKey;
+    const mainWalletAddress = result.mainAccountWalletAddress;
 
     const subAccountTronWebConfig = new TronWeb({
       fullHost: TRON_GRID_API,
@@ -262,33 +278,77 @@ export const sendUSDTfromSubAccount = async (req, res) => {
     });
   
 
-    if (!amount || isNaN(amount) || amount <= 0) {
+    if (!amountInUSDT || isNaN(amountInUSDT) || amountInUSDT <= 0) {
       return responseHandler(res, STATUS.BAD_REQUEST, MESSAGES.BAD_REQUEST, {
-        data: `${amount} is in wrong format`,
+        data: `${amountInUSDT} is in wrong format`,
       });
     }
 
     // multplying it to 100000 => 1USDT = 1000000 SUN
-    const amountInSun = amount * 1000000;
+    const amountInSun = amountInUSDT * 1000000;
 
     const contract = await subAccountTronWebConfig
       .contract()
       .at(USDT_CONTRACT_ADDRESS);
 
-    const balanceInSun = await contract.methods.balanceOf(subAccountTronWebConfig.defaultAddress.base58).call();
-    const balanceInUSDT = parseInt(balanceInSun) / 1000000;
+    /**
+     * fetch the 
+     *  - UDTbalance - which is to be transferred
+     *  - TRXBalance - required as transaction fee for transferring USDT
+     */
+    
+    const balanceInUSDT = await getUSDTBalance(address);
+    const balanceInTRX = await getTRXBalance(address);
 
-    console.log(`Sub account USDT balance: ${balanceInUSDT} USDT `);
+    console.log(`🔹 Sub-Account USDT Balance: ${balanceInUSDT} USDT`);
+    console.log(`🔹 Sub-Account TRX Balance: ${balanceInTRX} TRX`);
 
-    if (balanceInUSDT < amount) {
+    /**
+     * hume check karna padega that if we have enough
+     *    - USDT to transfer
+     *    - enough TRX for transaction fee
+     *    - if not enough TRX then request to gas wallet for TRX - Later
+     */
+
+    let transactionFee;
+    
+    try{
+
+      const parameter = [
+        {type: "address", value: mainWalletAddress},
+        {type: "uint256", value: amountInSun.toString()}
+      ]
+
+      const functionSelector = "transfer(address,uint256)";
+
+      const estimatedEnergy = await subAccountTronWebConfig.transactionBuilder.estimateEnergy(address, USDT_CONTRACT_ADDRESS, functionSelector, parameter)
+    
+      console.log(`🔹 Estimated Energy: ${estimatedEnergy}`);
+     
+
+    }catch(error){
+      console.error("⚠️ Error estimating energy:", error);
+    }
+
+    /*
+    const transactionFee = await contract.methods.transfer(mainWalletAddress, amountInSun).estimateEnergy();
+    const estimatedEnergy = transactionFee.energy_used; 
+    const estimatedFeeInSun = estimatedEnergy * 420;
+    const estimatedFeeInTRX = subAccountTronWebConfig.fromSun(estimatedFeeInSun);
+    */
+
+    console.log(`🔹 Estimated TRX Fee: ${transactionFee} TRX`);
+
+    if (balanceInUSDT < amountInUSDT) {
+      if(balanceInTRX < estimatedFeeInTRX){
+        return responseHandler(res, STATUS.BAD_REQUEST, MESSAGES.BAD_REQUEST, {data: "In sufficient TRX for transferring USDT"});
+      }
       return responseHandler(res, STATUS.BAD_REQUEST, MESSAGES.BAD_REQUEST, { data: "In sufficient balance",});
     }
 
-    console.log(
-      `🔹 Sending ${amount} USDT from Sub-Account to ${MAIN_ACCOUNT_WALLET_ADDRESS}...`
-    );
+    console.log(`🔹 Sending ${amountInUSDT} USDT from Sub-Account to ${mainWalletAddress}...`);
 
-    const transaction = await contract.methods.transfer(MAIN_ACCOUNT_WALLET_ADDRESS, asmountInSun).send();
+    const transaction = await contract.methods.transfer(mainWalletAddress, amountInSun).send();
 
     if (!transaction) throw new Error("Error transferring USDt");
 
