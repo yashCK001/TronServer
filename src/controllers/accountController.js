@@ -17,7 +17,7 @@ import {
 } from "../helpers/responseHandler.js";
 
 import mongoose from "mongoose";
-import { TronWeb } from "tronweb";
+import { TronWeb, Trx } from "tronweb";
 import { config } from "dotenv";
 config();
 
@@ -252,22 +252,16 @@ export const getTransactionHistory = async (req, res) => {
 // send usdt
 
 export const sendUSDTfromSubAccount = async (req, res) => {
-
   try {
     const { amountInUSDT, address } = req.body;
 
-    /*
-    Search from the mongoDB 
-      - private key
-      - mainWalletAddress associated with the walletAddress
-    */
+    const result = await subaccountModel.findOne({ address });
 
-    const result = await subaccountModel.findOne({address})
-
-    if(!result) {
+    if (!result) {
       return responseHandler(res, STATUS.NOT_FOUND, MESSAGES.NOT_FOUND, {
-        data: "Sub account not found"
-      })};
+        data: "Sub account not found",
+      });
+    }
 
     const senderPrivateKey = result.privateKey;
     const mainWalletAddress = result.mainAccountWalletAddress;
@@ -276,7 +270,6 @@ export const sendUSDTfromSubAccount = async (req, res) => {
       fullHost: TRON_GRID_API,
       privateKey: senderPrivateKey,
     });
-  
 
     if (!amountInUSDT || isNaN(amountInUSDT) || amountInUSDT <= 0) {
       return responseHandler(res, STATUS.BAD_REQUEST, MESSAGES.BAD_REQUEST, {
@@ -284,86 +277,85 @@ export const sendUSDTfromSubAccount = async (req, res) => {
       });
     }
 
-    // multplying it to 100000 => 1USDT = 1000000 SUN
+    // Convert USDT to SUN (1 USDT = 1,000,000 SUN)
     const amountInSun = amountInUSDT * 1000000;
 
-    const contract = await subAccountTronWebConfig
-      .contract()
-      .at(USDT_CONTRACT_ADDRESS);
+    const contract = await subAccountTronWebConfig.contract().at(USDT_CONTRACT_ADDRESS);
 
-    /**
-     * fetch the 
-     *  - UDTbalance - which is to be transferred
-     *  - TRXBalance - required as transaction fee for transferring USDT
-     */
-    
     const balanceInUSDT = await getUSDTBalance(address);
     const balanceInTRX = await getTRXBalance(address);
 
     console.log(`🔹 Sub-Account USDT Balance: ${balanceInUSDT} USDT`);
     console.log(`🔹 Sub-Account TRX Balance: ${balanceInTRX} TRX`);
 
-    /**
-     * hume check karna padega that if we have enough
-     *    - USDT to transfer
-     *    - enough TRX for transaction fee
-     *    - if not enough TRX then request to gas wallet for TRX - Later
-     */
-
     let transactionFee;
-    
-    try{
-
-      const parameter = [
-        {type: "address", value: mainWalletAddress},
-        {type: "uint256", value: amountInSun.toString()}
-      ]
+    try {
+       const parameter = [
+        { type: "address", value: mainWalletAddress },
+        { type: "uint256", value: amountInSun.toString() },
+      ];
 
       const functionSelector = "transfer(address,uint256)";
 
-      const estimatedEnergy = await subAccountTronWebConfig.transactionBuilder.estimateEnergy(address, USDT_CONTRACT_ADDRESS, functionSelector, parameter)
-    
-      console.log(`🔹 Estimated Energy: ${estimatedEnergy}`);
-     
+      const estimatedEnergy = await subAccountTronWebConfig.transactionBuilder.estimateEnergy(
+        USDT_CONTRACT_ADDRESS, 
+        functionSelector, 
+        {}, 
+        parameter, 
+        address 
+      );
 
-    }catch(error){
+      /*
+      const energyPrices = await subAccountTronWebConfig.trx.getEnergyPrices();
+      const latestEnergyPrice = ((energyPrices.split(",")[energyPrices.split(",").length-1]).toString()).split(":")[1]
+      */
+
+      // const estimatedFeeInSun = estimatedEnergy * 250;
+
+      // transactionFee = subAccountTronWebConfig.fromSun(estimatedFeeInSun); 
+      // console.log("Estimated TRX : ", transactionFee)
+
+      console.log(`🔹 Estimated Energy: ${estimatedEnergy}`);
+      
+      const energyPrice = 210; // Energy price in SUN per unit
+      const estimatedFeeInSun = (estimatedEnergy.energy_required) * energyPrice;
+  
+      console.log(`🔹 Estimated fee in SUN: ${estimatedFeeInSun}`);
+      transactionFee = subAccountTronWebConfig.fromSun(estimatedFeeInSun);
+
+    } catch (error) {
       console.error("⚠️ Error estimating energy:", error);
+      transactionFee = subAccountTronWebConfig.fromSun(30000000); 
     }
 
-    /*
-    const transactionFee = await contract.methods.transfer(mainWalletAddress, amountInSun).estimateEnergy();
-    const estimatedEnergy = transactionFee.energy_used; 
-    const estimatedFeeInSun = estimatedEnergy * 420;
-    const estimatedFeeInTRX = subAccountTronWebConfig.fromSun(estimatedFeeInSun);
-    */
+    // transactionFee = parseFloat(transactionFee); 
 
     console.log(`🔹 Estimated TRX Fee: ${transactionFee} TRX`);
 
     if (balanceInUSDT < amountInUSDT) {
-      if(balanceInTRX < estimatedFeeInTRX){
-        return responseHandler(res, STATUS.BAD_REQUEST, MESSAGES.BAD_REQUEST, {data: "In sufficient TRX for transferring USDT"});
-      }
-      return responseHandler(res, STATUS.BAD_REQUEST, MESSAGES.BAD_REQUEST, { data: "In sufficient balance",});
+      return responseHandler(res, STATUS.BAD_REQUEST, MESSAGES.BAD_REQUEST, {
+        data: "Insufficient USDT balance",
+      });
+    }
+
+    if (balanceInTRX < transactionFee) {
+      return responseHandler(res, STATUS.BAD_REQUEST, MESSAGES.BAD_REQUEST, {
+        data: "Insufficient TRX for transaction fee",
+      });
     }
 
     console.log(`🔹 Sending ${amountInUSDT} USDT from Sub-Account to ${mainWalletAddress}...`);
 
     const transaction = await contract.methods.transfer(mainWalletAddress, amountInSun).send();
 
-    if (!transaction) throw new Error("Error transferring USDt");
+    if (!transaction) throw new Error("Error transferring USDT");
 
-  
     console.log("✅ USDT Transfer Successful:", transaction);
     return responseHandler(res, STATUS.OK, MESSAGES.OK, { data: transaction });
-
   } catch (error) {
-    console.error(`Error in sending USDT : ${error}`);
-    return responseHandler(
-      res,
-      STATUS.SERVER_ERROR,
-      MESSAGES.SERVER_ERROR,
-      error
-    );
+    console.error(`Error in sending USDT: ${error}`);
+    return responseHandler(res, STATUS.SERVER_ERROR, MESSAGES.SERVER_ERROR, error);
   }
 };
+
 
